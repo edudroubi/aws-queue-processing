@@ -5,9 +5,11 @@ from aws_cdk import (
     aws_sns as sns,
     aws_sns_subscriptions as subscriptions,
     aws_lambda as _lambda,
-    aws_lambda_event_sources as lambda_event_sources
+    aws_lambda_event_sources as lambda_event_sources,
+    aws_iam as iam,
 )
 from constructs import Construct
+
 
 class AwsQueueProcessingStack(Stack):
 
@@ -26,7 +28,7 @@ class AwsQueueProcessingStack(Stack):
             'NewQueue',
             # Attach dlq to handle with errors
             dead_letter_queue=sqs.DeadLetterQueue(
-                max_receive_count=123,
+                max_receive_count=1,
                 queue=dlq
             )
         )
@@ -48,6 +50,10 @@ class AwsQueueProcessingStack(Stack):
             code=_lambda.Code.from_asset('aws_queue_processing/lambda'),
             timeout=Duration.seconds(15),
             memory_size=128,
+            reserved_concurrent_executions=1,
+            dead_letter_queue=dlq,
+            dead_letter_queue_enabled=True,
+            retry_attempts=1
         )
 
         # Create event source from new queue to be attached to lambda function consumer
@@ -55,3 +61,10 @@ class AwsQueueProcessingStack(Stack):
 
         # Attach lambda to event source
         fn.add_event_source(event_source)
+
+        fn.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["sqs:SendMessage"],
+                resources=[dlq.queue_arn]
+            )
+        )
