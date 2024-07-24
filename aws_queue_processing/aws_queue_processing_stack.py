@@ -53,7 +53,7 @@ class AwsQueueProcessingStack(Stack):
             reserved_concurrent_executions=1,
             dead_letter_queue=dlq,
             dead_letter_queue_enabled=True,
-            retry_attempts=1
+            retry_attempts=2
         )
 
         # Create event source from new queue to be attached to lambda function consumer
